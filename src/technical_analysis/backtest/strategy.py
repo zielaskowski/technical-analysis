@@ -9,6 +9,42 @@ class Strategy(object):
         raise NotImplementedError
 
 
+class CenterLineCrossover(Strategy):
+    """
+    Centerline Crossover Strategy
+    -------------
+
+    Parameters:
+    ------------
+        'ma1_name' -> str; column name of moving average
+        'lookback_periods' -> int; number of periods to look back to validate crossover
+        'confirmation_periods' -> int; number of consecutive periods where
+                                    - ma1 must be > ma2 if kind=='bullish'
+                                    - ma2 must be < ma1 if kind=='bearish'
+        'kind' -> str; one of ['bullish', 'bearish']
+    """
+
+    def __init__(
+        self,
+        ma_name: str,
+        kind: str,
+        confirmation_periods: int = 3,
+        lookback_periods: int = 4,
+    ):
+        self.mac = MovingAverageCrossover(
+            ma1_name=ma_name,
+            ma2_name="_zer0",
+            kind=kind,
+            confirmation_periods=confirmation_periods,
+            lookback_periods=lookback_periods,
+        )
+
+    def run(self, data: pd.DataFrame) -> pd.Series:
+        data = data.copy()
+        data["_zer0"] = 0
+        return self.mac.run(data)
+
+
 class MovingAverageCrossover(Strategy):
     """
     Parameters:
