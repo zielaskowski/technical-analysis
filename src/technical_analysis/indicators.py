@@ -1,4 +1,4 @@
-from typing import Tuple, Callable
+from typing import Tuple, Callable, Union, List
 
 import numpy as np
 import pandas as pd
@@ -51,7 +51,9 @@ def atr(
     return average_true_range
 
 
-def rsi(price: pd.Series, period: int, ma_fn: Callable = sma, use_wilder_ma: bool = True) -> pd.Series:
+def rsi(
+    price: pd.Series, period: int, ma_fn: Callable = sma, use_wilder_ma: bool = True
+) -> pd.Series:
     """
     Relative Strength Index
 
@@ -197,11 +199,11 @@ def stochastic(
 
 def macd(
     price: pd.Series,
+    output: List[str] = ["macd"],
     fast_period: int = 12,
     slow_period: int = 26,
     signal_period: int = 9,
-    return_histogram: bool = True,
-) -> pd.Series:
+) -> Union[pd.Series, Tuple[pd.Series]]:
     """
     Moving Average Convergence/Divergence (MACD)
 
@@ -211,13 +213,20 @@ def macd(
         Signal Line: 9-day EMA of MACD Line
         MACD Histogram: MACD Line - Signal Line
 
+    Returns:
+    -----------
+    defined by 'output' argument [macd,signal,hist]
+    - tuple(pd.Series) if more then one selected, otherway pd.Series
+
     Reference:
     -----------
         https://school.stockcharts.com/doku.php?id=technical_indicators:moving_average_convergence_divergence_macd
 
     """
     macd_line = ema(price, period=fast_period) - ema(price, period=slow_period)
-    signal_line = ema(macd_line, signal_period)
-    if return_histogram:
-        return macd_line - signal_line
-    return signal_line
+    signal_line = ema(macd_line, period=signal_period)
+    histogram = macd_line - signal_line
+    output_data = {"macd": macd_line, "signal": signal_line, "hist": histogram}
+    if len(output)==1:
+        return output_data[output[0]]
+    return (output_data[o] for o in output)
