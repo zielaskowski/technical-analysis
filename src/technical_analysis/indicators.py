@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Tuple, Callable, Union, List
 
 import numpy as np
 import pandas as pd
@@ -20,7 +20,39 @@ true_range = _true_range
 atr = _atr
 
 
-def rsi(price: pd.Series, period: int, ma_fn: Callable = sma, use_wilder_ma: bool = True) -> pd.Series:
+def atr(
+    high: pd.Series,
+    low: pd.Series,
+    close: pd.Series,
+    period: int = 14,
+    use_wilder_ma: bool = True,
+) -> pd.Series:
+    """
+    Average True Range (measures volatility)
+    and is the 14 day moving average of the following:
+    ```
+        max(
+            high - low
+            abs(high - prev_close)
+            abs(low - prev_close)
+        )
+    ```
+    """
+    high_low = high - low
+    high_cp = np.abs(high - close.shift(1))
+    low_cp = np.abs(low - close.shift())
+    df = pd.concat([high_low, high_cp, low_cp], axis=1)
+    true_range = np.max(df, axis=1)
+    if use_wilder_ma:
+        average_true_range = wilder_ma(true_range, period)
+    else:
+        average_true_range = sma(true_range, period)
+    return average_true_range
+
+
+def rsi(
+    price: pd.Series, period: int, ma_fn: Callable = sma, use_wilder_ma: bool = True
+) -> pd.Series:
     """
     Relative Strength Index
 
@@ -184,11 +216,11 @@ def stochastic(
 
 def macd(
     price: pd.Series,
+    output: List[str] = ["macd"],
     fast_period: int = 12,
     slow_period: int = 26,
     signal_period: int = 9,
-    return_histogram: bool = True,
-) -> pd.Series:
+) -> Union[pd.Series, Tuple[pd.Series]]:
     """
     Moving Average Convergence/Divergence (MACD)
 
@@ -198,16 +230,23 @@ def macd(
         Signal Line: 9-day EMA of MACD Line
         MACD Histogram: MACD Line - Signal Line
 
+    Returns:
+    -----------
+    defined by 'output' argument [macd,signal,hist]
+    - tuple(pd.Series) if more then one selected, otherway pd.Series
+
     Reference:
     -----------
         https://school.stockcharts.com/doku.php?id=technical_indicators:moving_average_convergence_divergence_macd
 
     """
     macd_line = ema(price, period=fast_period) - ema(price, period=slow_period)
-    signal_line = ema(macd_line, signal_period)
-    if return_histogram:
-        return macd_line - signal_line
-    return signal_line
+    signal_line = ema(macd_line, period=signal_period)
+    histogram = macd_line - signal_line
+    output_data = {"macd": macd_line, "signal": signal_line, "hist": histogram}
+    if len(output)==1:
+        return output_data[output[0]]
+    return (output_data[o] for o in output)
 
 
 def rvol(volume: pd.Series, period: int) -> pd.Series:
