@@ -252,3 +252,26 @@ class Backtest(object):
         self.entry = self._apply_criteria(data, exit=False)  # entry
         self.exit = self._apply_criteria(data, exit=True)
         self.results = self.calculate_results(data)
+
+    def signal(self)->pd.Series:
+        if not self.results:
+            warn("Must call 'run' before plotting results.")
+            return
+        signal = pd.Series(index=self.entry.index, data=0)
+        signal.loc[self.entry] = 1
+        signal.loc[self.exit] = -1
+        return signal
+
+    def plot(self, figsize: tuple = (10, 6)):
+        if not self.results:
+            warn("Must call 'run' before plotting results.")
+            return
+
+        fig = plt.figure(figsize=figsize)
+        ax = fig.add_subplot(1, 1, 1)
+        ax.yaxis.set_major_formatter(mtick.PercentFormatter())
+        ax.plot(np.cumsum(self.results["returns"]) * 100)
+        plt.title("Backtest Cumulative Return")
+        plt.ylabel("Percent Return")
+        plt.xlabel("Num Trades")
+        plt.show()
