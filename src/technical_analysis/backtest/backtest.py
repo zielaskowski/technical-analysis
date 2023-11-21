@@ -255,6 +255,15 @@ class Backtest(object):
         self.exit = self._apply_criteria(data, exit=True)
         self.results = self.calculate_results(data)
 
+    def signal(self)->pd.Series:
+        if not self.results:
+            warn("Must call 'run' before plotting results.")
+            return
+        signal = pd.Series(index=self.entry.index, data=0)
+        signal.loc[self.entry] = 1
+        signal.loc[self.exit] = -1
+        return signal
+
     def plot(self, figsize: tuple = (10, 6)):
         if not self.results:
             warn("Must call 'run' before plotting results.")
