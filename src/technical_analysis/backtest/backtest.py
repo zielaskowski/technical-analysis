@@ -207,12 +207,10 @@ class Backtest(object):
             axis=1
         )  # column-wise logical 'and'
 
-    def calculate_results(self,
-                          data: pd.DataFrame,
-                          entry: pd.Series,
-                          exit: pd.Series) -> dict:
-        benchmark = (data.close[-1] - data.close[0]) / data.close[0]
-        assert entry.size == exit.size
+
+    def calculate_results(self, data: pd.DataFrame) -> dict:
+        benchmark = (data.close.iloc[-1] - data.close.iloc[0]) / data.close.iloc[0]
+        assert self.entry.size == self.exit.size
         if self.use_next_open:
             entry = self.entry.iloc[:-1]
             exit = self.exit.iloc[:-1]
@@ -250,6 +248,15 @@ class Backtest(object):
         self.entry = self._apply_criteria(data, exit=False)  # entry
         self.exit = self._apply_criteria(data, exit=True)
         self.results = self.calculate_results(data)
+
+    def signal(self)->pd.Series:
+        if not self.results:
+            warn("Must call 'run' before plotting results.")
+            return
+        signal = pd.Series(index=self.entry.index, data=0)
+        signal.loc[self.entry] = 1
+        signal.loc[self.exit] = -1
+        return signal
 
     def plot(self, figsize: tuple = (10, 6)):
         if not self.results:
