@@ -227,6 +227,76 @@ def macd(
     signal_line = ema(macd_line, period=signal_period)
     histogram = macd_line - signal_line
     output_data = {"macd": macd_line, "signal": signal_line, "hist": histogram}
-    if len(output)==1:
+    if len(output) == 1:
         return output_data[output[0]]
     return (output_data[o] for o in output)
+
+
+def trend_up(price: pd.Series, period: int = 5) -> pd.Series:
+    """
+    Return True when trend is up, false otherway
+    for down trend on stock, makes more sense to provide high price
+    """
+    return trend_down(price *-1, period)
+
+
+def trend_down(price: pd.Series, period: int = 5) -> pd.Series:
+    """
+    Return True when trend is down, false otherway
+    for down trend on stock, makes more sense to provide low price
+    check price against average, simply but usefull in most cases
+    """
+    df = pd.DataFrame(price)
+    df.reset_index(drop=True, inplace=True)
+    col = df.columns[0]
+    trend = []
+    i_start = 0
+
+    while True:
+        dat = df.loc[i_start:].copy()
+        dat.reset_index(inplace=True)  # will move 'global' index to column 'index'
+        dat["cummean"] = dat[col].cumsum() / (dat.index + 1)
+        dat["trend"] = dat[col] < dat["cummean"]
+
+        ##########
+        # OPENING TREND
+        # checks next 'window' points are below mean
+        from_trend = (
+            dat["trend"]
+            .sort_index(ascending=False)
+            .rolling(period)
+            .apply(lambda x: min(x.index) if all(x) else np.nan)
+        ).min()
+        # drop before so cumulative mean is calculated during trend only
+        if from_trend > 1:
+            # max value may be in droped rows
+            i_start += dat.loc[1:from_trend, col].idxmax()
+            continue
+
+        ############
+        # CLOSING TREND
+        # if last 'window' points were above mean
+        # we are in trend
+        to_trend_s = (
+            dat["trend"]
+            .rolling(period)
+            .apply(lambda x: max(x.index) if all(x) else np.nan)
+        )
+        # closing trend when last digit (not nan()) followed by nan()
+        to_trend = (
+            (to_trend_s.isna().shift(-1) & ~to_trend_s.isna())
+            .map({False: np.nan, True: 0})
+            .first_valid_index()
+        )
+
+        if not to_trend or to_trend > len(df) - period:
+            break
+        # close the trend at minimum
+        to_trend = dat.loc[from_trend:to_trend, col].idxmin()
+        trend.append([dat.loc[from_trend, "index"], dat.loc[to_trend, "index"]])
+        i_start = dat.loc[to_trend, "index"] + 1
+    
+    price=price.astype(str).replace(regex=r'.+',value=False)
+    for t in trend:
+        price.iloc[t[0]:t[1]] = True
+    return price
