@@ -1,4 +1,5 @@
 import pandas as pd
+from technical_analysis.indicators import trend_up, trend_down
 
 
 class Strategy(object):
@@ -7,6 +8,41 @@ class Strategy(object):
 
     def run(self, data: pd.DataFrame) -> pd.Series:
         raise NotImplementedError
+
+
+class Divergence(Strategy):
+    """
+    Divergence Strategy
+    -------------
+
+    Parameters:
+    ------------
+        'price' -> str; column name of prices, use 'high' price for bearish divergence and 'low' for bullish
+        'ma_name' -> str; column name of moving average
+        'kind' -> str: bullish or bearish divergence
+        'lookback_periods' -> int; number of periods to look back to validate divergence
+    """
+
+    def __init__(
+        self, price: str, ma_name: str, kind: str, lookback_periods: int =30
+    ):
+        self.price = price
+        self.ma_name = ma_name
+        self.lookback_periods = lookback_periods
+        assert kind in [
+            "bearish",
+            "bullish",
+        ], "kind must be one of ['bullish', 'bearish']"
+        self.kind = kind
+
+    def run(self, data: pd.DataFrame):
+        return (
+            trend_down(data[self.price], period=self.lookback_periods)
+            & trend_up(data[self.ma_name], period=self.lookback_periods)
+            if self.kind == "bullish"
+            else trend_up(data[self.price], period=self.lookback_periods)
+            & trend_down(data[self.ma_name], period=self.lookback_periods)
+        )
 
 
 class CenterLineCrossover(Strategy):
@@ -83,7 +119,9 @@ class MovingAverageCrossover(Strategy):
     def _run_bearish(self, data: pd.DataFrame, lookback: int) -> pd.Series:
         below = data[self.ma1_name] < data[self.ma2_name]
 
-        prior_above = data[self.ma1_name].shift(lookback) > data[self.ma2_name].shift(lookback)
+        prior_above = data[self.ma1_name].shift(lookback) > data[self.ma2_name].shift(
+            lookback
+        )
         return prior_above & below
 
     def run(self, data: pd.DataFrame) -> pd.Series:
