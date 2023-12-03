@@ -326,3 +326,16 @@ def trend_down(price: pd.Series, period: int = 5) -> pd.Series:
     for t in trend:
         price.iloc[t[0]:t[1]] = True
     return price
+
+
+def obv(price:Union[pd.Series, pd.DataFrame],volume: Union[pd.Series, None]=None) -> pd.Series:
+    """
+    On Balance Volume
+    """
+    if isinstance(price, pd.DataFrame):
+        volume = price['volume']
+        price = price["close"]
+    obv = pd.Series(0.0, index=price.index)
+    obv[price > price.shift(1)] = volume[price > price.shift(1)]
+    obv[price < price.shift(1)] = -volume[price < price.shift(1)]
+    return obv.cumsum()
