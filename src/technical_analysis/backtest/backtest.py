@@ -234,6 +234,10 @@ class Backtest(object):
                 entry_price = positions.pop(0)
                 returns.append((price - entry_price) / entry_price)
 
+        # possibly no signals to enter generated
+        if not returns:
+            returns = [0]
+
         return {
             "benchmark": benchmark,
             "strategy": np.sum(returns),
