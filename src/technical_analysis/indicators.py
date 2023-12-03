@@ -169,13 +169,14 @@ def trix(price: pd.Series, period: int = 15) -> pd.Series:
 
 
 def stochastic(
-    high: pd.Series,
-    low: pd.Series,
-    close: pd.Series,
+    high: Union[pd.Series,pd.DataFrame],
     period: int,
+    low: Union[pd.Series, None]=None,
+    close: Union[pd.Series, None]=None,
+    output: List[str] = ['perc_k', 'perc_d'],
     perc_k_smoothing: int = 0,
     perc_d_smoothing: int = 3,
-) -> tuple[pd.Series]:
+) -> Union[pd.Series, Tuple[pd.Series]]:
     """
     Stochastic Oscillator
     ----------
@@ -204,6 +205,11 @@ def stochastic(
         https://school.stockcharts.com/doku.php?id=technical_indicators:stochastic_oscillator_fast_slow_and_full
 
     """
+    if isinstance(high, pd.DataFrame):
+        low = high['low']
+        close = high['close']
+        high = high['high']
+
     lowest_low = low.rolling(period).min()
     highest_high = high.rolling(period).max()
 
@@ -211,11 +217,14 @@ def stochastic(
     if perc_k_smoothing:
         perc_k = sma(perc_k, perc_k_smoothing)
     perc_d = sma(perc_k, perc_d_smoothing)  # the trigger line
-    return perc_k, perc_d
+    output_data = {"perc_k": perc_k, "perc_d": perc_d}
+    if len(output) == 1:
+        return output_data[output[0]]
+    return (output_data[o] for o in output)
 
 
 def macd(
-    price: pd.Series,
+    price: Union[pd.Series,pd.DataFrame],
     output: List[str] = ["macd"],
     fast_period: int = 12,
     slow_period: int = 26,
