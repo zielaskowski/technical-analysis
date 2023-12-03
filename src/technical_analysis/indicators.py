@@ -51,9 +51,7 @@ def atr(
     return average_true_range
 
 
-def rsi(
-    price: pd.Series, period: int, ma_fn: Callable = sma, use_wilder_ma: bool = True
-) -> pd.Series:
+def rsi(price: Union[pd.Series, pd.DataFrame], period: int, ma_fn: Callable = sma, use_wilder_ma: bool = True) -> pd.Series:
     """
     Relative Strength Index
 
@@ -64,6 +62,7 @@ def rsi(
         RS = Average Gain / Average Loss
         RSI = 100 - (100/(1+RS))
     """
+    price = price['close'] if isinstance(price, pd.DataFrame) else price
     if use_wilder_ma:
         ma_fn = wilder_ma
 

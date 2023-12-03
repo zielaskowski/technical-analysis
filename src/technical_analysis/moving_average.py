@@ -21,13 +21,14 @@ def lwma(price: pd.Series, period: int) -> pd.Series:
     return price.rolling(period).apply(lambda x: np.dot(x, weights) / weights.sum(), raw=True)
 
 
-def ema(price: pd.Series, period: int) -> pd.Series:
+def ema(data: Union[pd.Series,pd.DataFrame], period: int) -> pd.Series:
     """
     Exponentially Smoothed Moving Average (EMA)
     ---------
     """
-    transformed_series = price.ewm(span=period, adjust=False).mean()
-    transformed_series[: period - 1] = np.nan
+    data = data['close'] if isinstance(data, pd.DataFrame) else data
+    transformed_series = data.ewm(span=period, adjust=False).mean()
+    transformed_series[:period-1] = np.nan
     return transformed_series
 
 
