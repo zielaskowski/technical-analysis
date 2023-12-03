@@ -53,6 +53,7 @@ class CenterLineCrossover(Strategy):
     Parameters:
     ------------
         'ma1_name' -> str; column name of moving average
+        'offset' -> offset of center line, defoult is zero
         'lookback_periods' -> int; number of periods to look back to validate crossover
         'confirmation_periods' -> int; number of consecutive periods where
                                     - ma1 must be > ma2 if kind=='bullish'
@@ -64,9 +65,11 @@ class CenterLineCrossover(Strategy):
         self,
         ma_name: str,
         kind: str,
+        offset=0,
         confirmation_periods: int = 3,
         lookback_periods: int = 4,
     ):
+        self.offset = offset
         self.mac = MovingAverageCrossover(
             ma1_name=ma_name,
             ma2_name="_zer0",
@@ -77,7 +80,7 @@ class CenterLineCrossover(Strategy):
 
     def run(self, data: pd.DataFrame) -> pd.Series:
         data = data.copy()
-        data["_zer0"] = 0
+        data["_zer0"] = self.offset
         return self.mac.run(data)
 
 
