@@ -169,11 +169,11 @@ def trix(price: pd.Series, period: int = 15) -> pd.Series:
 
 
 def stochastic(
-    high: Union[pd.Series,pd.DataFrame],
+    high: Union[pd.Series, pd.DataFrame],
     period: int,
-    low: Union[pd.Series, None]=None,
-    close: Union[pd.Series, None]=None,
-    output: List[str] = ['perc_k', 'perc_d'],
+    low: Union[pd.Series, None] = None,
+    close: Union[pd.Series, None] = None,
+    output: List[str] = ["perc_k", "perc_d"],
     perc_k_smoothing: int = 0,
     perc_d_smoothing: int = 3,
 ) -> Union[pd.Series, Tuple[pd.Series]]:
@@ -206,9 +206,9 @@ def stochastic(
 
     """
     if isinstance(high, pd.DataFrame):
-        low = high['low']
-        close = high['close']
-        high = high['high']
+        low = high["low"]
+        close = high["close"]
+        high = high["high"]
 
     lowest_low = low.rolling(period).min()
     highest_high = high.rolling(period).max()
@@ -224,7 +224,7 @@ def stochastic(
 
 
 def macd(
-    price: Union[pd.Series,pd.DataFrame],
+    price: Union[pd.Series, pd.DataFrame],
     output: List[str] = ["macd"],
     fast_period: int = 12,
     slow_period: int = 26,
@@ -263,7 +263,7 @@ def trend_up(price: pd.Series, period: int = 5) -> pd.Series:
     Return True when trend is up, false otherway
     for down trend on stock, makes more sense to provide high price
     """
-    return trend_down(price *-1, period)
+    return trend_down(price * -1, period)
 
 
 def trend_down(price: pd.Series, period: int = 5) -> pd.Series:
@@ -321,21 +321,43 @@ def trend_down(price: pd.Series, period: int = 5) -> pd.Series:
         to_trend = dat.loc[from_trend:to_trend, col].idxmin()
         trend.append([dat.loc[from_trend, "index"], dat.loc[to_trend, "index"]])
         i_start = dat.loc[to_trend, "index"] + 1
-    
-    price=price.astype(str).replace(regex=r'.+',value=False)
+
+    price_trend = pd.Series(False, index=price.index)
     for t in trend:
-        price.iloc[t[0]:t[1]] = True
-    return price
+        price_trend.iloc[t[0] : t[1]] = True
+    return price_trend
 
 
-def obv(price:Union[pd.Series, pd.DataFrame],volume: Union[pd.Series, None]=None) -> pd.Series:
+def obv(
+    price: Union[pd.Series, pd.DataFrame], volume: Union[pd.Series, None] = None
+) -> pd.Series:
     """
     On Balance Volume
     """
     if isinstance(price, pd.DataFrame):
-        volume = price['volume']
+        volume = price["volume"]
         price = price["close"]
     obv = pd.Series(0.0, index=price.index)
     obv[price > price.shift(1)] = volume[price > price.shift(1)]
     obv[price < price.shift(1)] = -volume[price < price.shift(1)]
     return obv.cumsum()
+
+
+def ad(
+    price: Union[pd.Series, pd.DataFrame],
+    low: Union[pd.Series, None] = None,
+    high: Union[pd.Series, None] = None,
+    volume: Union[pd.Series, None] = None,
+) -> pd.Series:
+    """
+    Accumulation/Distribution
+    """
+    if isinstance(price, pd.DataFrame):
+        volume = price["volume"]
+        low = price["low"]
+        high = price["high"]
+        price = price["close"]
+    ad = pd.Series(0, index=price.index)
+    MFM = ((price-low)-(high-price)) / (high-low)
+    ad = MFM * volume
+    return ad.cumsum()
