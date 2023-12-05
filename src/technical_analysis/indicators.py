@@ -358,6 +358,34 @@ def ad(
         high = price["high"]
         price = price["close"]
     ad = pd.Series(0, index=price.index)
-    MFM = ((price-low)-(high-price)) / (high-low)
+    MFM = ((price - low) - (high - price)) / (high - low)
     ad = MFM * volume
     return ad.cumsum()
+
+
+def adx(
+    price: Union[pd.Series, pd.DataFrame],
+    output: List[str] = ["adx"],
+    high: Union[pd.Series, None] = None,
+    low: Union[pd.Series, None] = None,
+) -> Union[pd.Series, Tuple[pd.Series]]:
+    """Average directional movement index"""
+    if isinstance(price, pd.DataFrame):
+        low = price["low"]
+        high = price["high"]
+        price = price["close"]
+
+    plusDM = pd.Series(0.0, index=high.index)
+    minusDM = pd.Series(0.0, index=high.index)
+
+    up_move = high - high.shift(1)
+    down_move = low.shift(1) - low
+    plusDM[(up_move > down_move) & (up_move != 0)] = up_move
+    minusDM[(down_move > up_move) & (down_move != 0)] = down_move
+    plusDI = 100 * sma(plusDM, 14) / atr(high, low, price, 14)
+    minusDI = 100 * sma(minusDM, 14) / atr(high, low, price, 14)
+    adx = ema(abs(plusDI - minusDI) / (plusDI + minusDI) * 100, 14)
+    output_data = {"adx": adx, "+DI": plusDI, "-DI": minusDI}
+    if len(output) == 1:
+        return output_data[output[0]]
+    return (output_data[o] for o in output)
