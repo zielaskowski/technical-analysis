@@ -20,6 +20,20 @@ true_range = _true_range
 atr = _atr
 
 
+def tr(high: pd.Series, low: pd.Series, close: pd.Series) -> pd.Series:
+    """
+    True Range (measures volatility)
+    max(
+            high - low
+            abs(high - prev_close)
+            abs(low - prev_close)
+        )
+    """
+    return pd.DataFrame(
+        [high - low, abs(high - close.shift()), abs(low - close.shift())]
+    ).max()
+
+
 def atr(
     high: pd.Series,
     low: pd.Series,
@@ -38,11 +52,7 @@ def atr(
         )
     ```
     """
-    high_low = high - low
-    high_cp = np.abs(high - close.shift(1))
-    low_cp = np.abs(low - close.shift())
-    df = pd.concat([high_low, high_cp, low_cp], axis=1)
-    true_range = np.max(df, axis=1)
+    true_range = tr(high, low, close)
     if use_wilder_ma:
         average_true_range = wilder_ma(true_range, period)
     else:
