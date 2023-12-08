@@ -390,10 +390,10 @@ def adx(
 
     up_move = high - high.shift(1)
     down_move = low.shift(1) - low
-    plusDM[(up_move > down_move) & (up_move != 0)] = up_move
-    minusDM[(down_move > up_move) & (down_move != 0)] = down_move
-    plusDI = 100 * sma(plusDM, 14) / atr(high, low, price, 14)
-    minusDI = 100 * sma(minusDM, 14) / atr(high, low, price, 14)
+    plusDM[(up_move > down_move)] = pd.DataFrame({'up':up_move,'zer':0}).max(axis=1)
+    minusDM[(down_move > up_move)] = pd.DataFrame({'down':down_move,'zer':0}).max(axis=1)
+    plusDI = 100 * sma(plusDM / tr(high, low, price), 14)
+    minusDI = 100 * sma(minusDM / tr(high, low, price), 14)
     adx = ema(abs(plusDI - minusDI) / (plusDI + minusDI) * 100, 14)
     output_data = {"adx": adx, "+DI": plusDI, "-DI": minusDI}
     if len(output) == 1:
