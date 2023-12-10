@@ -18,7 +18,9 @@ def lwma(price: pd.Series, period: int) -> pd.Series:
     ---------
     """
     weights = np.arange(1, period + 1)
-    return price.rolling(period).apply(lambda x: np.dot(x, weights) / weights.sum(), raw=True)
+    return price.rolling(period).apply(
+        lambda x: np.dot(x, weights) / weights.sum(), raw=True
+    )
 
 
 def ema(price: pd.Series, period: int) -> pd.Series:
@@ -31,7 +33,9 @@ def ema(price: pd.Series, period: int) -> pd.Series:
     return transformed_series
 
 
-def n_smoothed_ema(price: pd.Series, period: Union[int, tuple], n_iterations: int) -> pd.Series:
+def n_smoothed_ema(
+    price: pd.Series, period: Union[int, tuple], n_iterations: int
+) -> pd.Series:
     """
     Variably Smoothed EMA
     """
@@ -139,7 +143,8 @@ def kama(
     min_smoothing_constant = 2 / (min_smoothing_constant + 1)
     max_smoothing_constant = 2 / (max_smoothing_constant + 1)
     smoothing_constant = (
-        efficiency_ratio * (min_smoothing_constant - max_smoothing_constant) + min_smoothing_constant
+        efficiency_ratio * (min_smoothing_constant - max_smoothing_constant)
+        + min_smoothing_constant
     ) ** 2
 
     # Current KAMA = Prior KAMA + SC x (Price - Prior KAMA)
