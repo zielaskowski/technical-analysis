@@ -56,12 +56,14 @@ def bullish_engulfing(
     Candles:
     ---------
     In a bearish trend:
-        1. a small body
-        2. a body that completely englufs the body of (1)
+        1. a small body and negative close
+        2. a body that completely englufs the body of (1) and positive close
     """
     downtrend = is_bearish_trend(close, lookback=trend_lookback, threshold=trend_threshold)
     outisde_body = body_outside_body(open, close)
-    return downtrend & outisde_body & positive_close(open, close)
+    prev_negative = negative_close(open.shift(1), close.shift(1))
+    current_positive = positive_close(open, close)
+    return downtrend & outisde_body & positive_close(open, close) & prev_negative & current_positive
 
 
 def bearish_engulfing(
@@ -79,12 +81,14 @@ def bearish_engulfing(
     Candles:
     ---------
     In a bearish trend:
-        1. a small body
-        2. a body that completely englufs the body of (1)
+        1. a small body and positive close
+        2. a body that completely englufs the body of (1) and negative close
     """
     uptrend = is_bullish_trend(close, lookback=trend_lookback, threshold=trend_threshold)
     outisde_body = body_outside_body(open, close)
-    return uptrend & outisde_body & negative_close(open, close)
+    prev_positive = positive_close(open.shift(1), close.shift(1))
+    current_negative = negative_close(open, close)
+    return uptrend & outisde_body & negative_close(open, close) & prev_positive & current_negative
 
 
 def n_black_crows(
