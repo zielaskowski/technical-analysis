@@ -251,11 +251,10 @@ def bearish_star(
     valid_star = is_doji(open, high, low, close, relative_threshold=relative_threshold)
     valid_star = valid_star & is_gap_up(high, low, min_gap_size=min_gap_size)
     reverse_candle = long_body_exists & negative_close(open, close)
-    below_doji = open < low.shift(1)
-    below_midpoint = close < ((close.shift(1) - open.shift(1)) / 2)
+    below_midpoint = close < (open.shift(2) + (close.shift(2) - open.shift(2)) / 2)
     return (uptrend & 
             long_green.shift(2) & 
             valid_star.shift(1) & 
             reverse_candle & 
             is_gap_down(high, low, min_gap_size) & 
-            below_doji & below_midpoint)
+            below_midpoint)
