@@ -32,7 +32,9 @@ sample_data = pd.read_csv(
 )
 sample_data['vol'] = sample_data['volume']
 sample_data["date"] = pd.to_datetime(sample_data["date"])
-sample_data = sample_data.loc[sample_data['date']<pd.to_datetime('2004-04-20')]
+# sample_data = sample_data.loc[sample_data['date']<pd.to_datetime('2004-04-20')]
+# sample_data = sample_data.loc[sample_data['date']<pd.to_datetime('2003-08-05')]
+sample_data = sample_data.loc[(sample_data['date']<pd.to_datetime('2004-04-20')) & (sample_data['date']>pd.to_datetime('2003-04-20'))]
 df= sample_data
 
 
@@ -57,8 +59,8 @@ fig.show()
 #*********************
 rt = rising_three(df, lookback=20)
 print(df[rt]) # 2004-04-19
-rt = rising_n(df, n=6, lookback=20)
-print(df[rt])
+rt = rising_n(df, n=5, lookback=20)
+print(df[rt]) # 2003-08-04
 
 be = bearish_engulfing(df, trend_lookback=20)
 print(df[be])
@@ -67,15 +69,15 @@ print(df[be])
 
 dc = dark_cloud(
     df, 
-    trend_lookback=30, 
+    trend_lookback=20, 
     trend_threshold=0.03, 
     min_body_size=0.7, 
-    new_high_periods=30
+    new_high_periods=20
 )
 print(df[dc])
 
 bs = bearish_star(df,
-            lookback= 30,
+            lookback= 20,
             min_body_size= 0.7,
             relative_threshold= 0.3,
             min_gap_size= 0.001
