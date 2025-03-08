@@ -1,4 +1,4 @@
-from typing import Tuple, Callable
+from typing import Tuple, Callable, Union, List
 
 import numpy as np
 import pandas as pd
@@ -21,6 +21,20 @@ def roc(price: pd.Series, period: int) -> pd.Series:
     return (price - shifted_price) / shifted_price
 
 
+def tr(high: pd.Series, low: pd.Series, close: pd.Series) -> pd.Series:
+    """
+    True Range (measures volatility)
+    max(
+            high - low
+            abs(high - prev_close)
+            abs(low - prev_close)
+        )
+    """
+    return pd.DataFrame(
+        [high - low, abs(high - close.shift()), abs(low - close.shift())]
+    ).max()
+
+
 def atr(
     high: pd.Series,
     low: pd.Series,
@@ -39,11 +53,7 @@ def atr(
         )
     ```
     """
-    high_low = high - low
-    high_cp = np.abs(high - close.shift(1))
-    low_cp = np.abs(low - close.shift())
-    df = pd.concat([high_low, high_cp, low_cp], axis=1)
-    true_range = np.max(df, axis=1)
+    true_range = tr(high, low, close)
     if use_wilder_ma:
         average_true_range = wilder_ma(true_range, period)
     else:
@@ -51,7 +61,9 @@ def atr(
     return average_true_range
 
 
-def rsi(price: pd.Series, period: int, ma_fn: Callable = sma, use_wilder_ma: bool = True) -> pd.Series:
+def rsi(
+    price: pd.Series, period: int, ma_fn: Callable = sma, use_wilder_ma: bool = True
+) -> pd.Series:
     """
     Relative Strength Index
 
@@ -150,13 +162,14 @@ def trix(price: pd.Series, period: int = 15) -> pd.Series:
 
 
 def stochastic(
-    high: pd.Series,
-    low: pd.Series,
-    close: pd.Series,
+    high: Union[pd.Series, pd.DataFrame],
     period: int,
+    low: Union[pd.Series, None] = None,
+    close: Union[pd.Series, None] = None,
+    output: List[str] = ["perc_k", "perc_d"],
     perc_k_smoothing: int = 0,
     perc_d_smoothing: int = 3,
-) -> Tuple[pd.Series]:
+) -> Union[pd.Series, Tuple[pd.Series]]:
     """
     Stochastic Oscillator
     ----------
@@ -185,6 +198,11 @@ def stochastic(
         https://school.stockcharts.com/doku.php?id=technical_indicators:stochastic_oscillator_fast_slow_and_full
 
     """
+    if isinstance(high, pd.DataFrame):
+        low = high["low"]
+        close = high["close"]
+        high = high["high"]
+
     lowest_low = low.rolling(period).min()
     highest_high = high.rolling(period).max()
 
@@ -192,16 +210,19 @@ def stochastic(
     if perc_k_smoothing:
         perc_k = sma(perc_k, perc_k_smoothing)
     perc_d = sma(perc_k, perc_d_smoothing)  # the trigger line
-    return perc_k, perc_d
+    output_data = {"perc_k": perc_k, "perc_d": perc_d}
+    if len(output) == 1:
+        return output_data[output[0]]
+    return (output_data[o] for o in output)
 
 
 def macd(
-    price: pd.Series,
+    price: Union[pd.Series, pd.DataFrame],
+    output: List[str] = ["macd"],
     fast_period: int = 12,
     slow_period: int = 26,
     signal_period: int = 9,
-    return_histogram: bool = True,
-) -> pd.Series:
+) -> Union[pd.Series, Tuple[pd.Series]]:
     """
     Moving Average Convergence/Divergence (MACD)
 
@@ -211,13 +232,159 @@ def macd(
         Signal Line: 9-day EMA of MACD Line
         MACD Histogram: MACD Line - Signal Line
 
+    Returns:
+    -----------
+    defined by 'output' argument [macd,signal,hist]
+    - tuple(pd.Series) if more then one selected, otherway pd.Series
+
     Reference:
     -----------
         https://school.stockcharts.com/doku.php?id=technical_indicators:moving_average_convergence_divergence_macd
 
     """
     macd_line = ema(price, period=fast_period) - ema(price, period=slow_period)
-    signal_line = ema(macd_line, signal_period)
-    if return_histogram:
-        return macd_line - signal_line
-    return signal_line
+    signal_line = ema(macd_line, period=signal_period)
+    histogram = macd_line - signal_line
+    output_data = {"macd": macd_line, "signal": signal_line, "hist": histogram}
+    if len(output) == 1:
+        return output_data[output[0]]
+    return (output_data[o] for o in output)
+
+
+def trend_up(price: pd.Series, period: int = 5) -> pd.Series:
+    """
+    Return True when trend is up, false otherway
+    for down trend on stock, makes more sense to provide high price
+    """
+    return trend_down(price * -1, period)
+
+
+def trend_down(price: pd.Series, period: int = 5) -> pd.Series:
+    """
+    Return True when trend is down, false otherway
+    for down trend on stock, makes more sense to provide low price
+    check price against average, simply but usefull in most cases
+    """
+    df = pd.DataFrame(price)
+    df.reset_index(drop=True, inplace=True)
+    col = df.columns[0]
+    trend = []
+    i_start = 0
+
+    while True:
+        dat = df.loc[i_start:].copy()
+        dat.reset_index(inplace=True)  # will move 'global' index to column 'index'
+        dat["cummean"] = dat[col].cumsum() / (dat.index + 1)
+        dat["trend"] = dat[col] < dat["cummean"]
+
+        ##########
+        # OPENING TREND
+        # checks next 'window' points are below mean
+        from_trend = (
+            dat["trend"]
+            .sort_index(ascending=False)
+            .rolling(period)
+            .apply(lambda x: min(x.index) if all(x) else np.nan)
+        ).min()
+        # drop before so cumulative mean is calculated during trend only
+        if from_trend > 1:
+            # max value may be in droped rows
+            i_start += dat.loc[1:from_trend, col].idxmax()
+            continue
+
+        ############
+        # CLOSING TREND
+        # if last 'window' points were above mean
+        # we are in trend
+        to_trend_s = (
+            dat["trend"]
+            .rolling(period)
+            .apply(lambda x: max(x.index) if all(x) else np.nan)
+        )
+        # closing trend when last digit (not nan()) followed by nan()
+        to_trend = (
+            (to_trend_s.isna().shift(-1) & ~to_trend_s.isna())
+            .map({False: np.nan, True: 0})
+            .first_valid_index()
+        )
+
+        if not to_trend or to_trend > len(df) - period:
+            break
+        # close the trend at minimum
+        to_trend = dat.loc[from_trend:to_trend, col].idxmin()
+        trend.append([dat.loc[from_trend, "index"], dat.loc[to_trend, "index"]])
+        i_start = dat.loc[to_trend, "index"] + 1
+
+    price_trend = pd.Series(False, index=price.index)
+    for t in trend:
+        price_trend.iloc[t[0] : t[1]] = True
+    return price_trend
+
+
+def obv(
+    price: Union[pd.Series, pd.DataFrame], volume: Union[pd.Series, None] = None
+) -> pd.Series:
+    """
+    On Balance Volume
+    """
+    if isinstance(price, pd.DataFrame):
+        volume = price["volume"]
+        price = price["close"]
+    obv = pd.Series(0.0, index=price.index)
+    obv[price > price.shift(1)] = volume[price > price.shift(1)]
+    obv[price < price.shift(1)] = -volume[price < price.shift(1)]
+    return obv.cumsum()
+
+
+def ad(
+    price: Union[pd.Series, pd.DataFrame],
+    low: Union[pd.Series, None] = None,
+    high: Union[pd.Series, None] = None,
+    volume: Union[pd.Series, None] = None,
+) -> pd.Series:
+    """
+    Accumulation/Distribution
+    """
+    if isinstance(price, pd.DataFrame):
+        volume = price["volume"]
+        low = price["low"]
+        high = price["high"]
+        price = price["close"]
+    ad = pd.Series(0, index=price.index)
+    MFM = ((price - low) - (high - price)) / (high - low)
+    ad = MFM * volume
+    return ad.cumsum()
+
+
+def adx(
+    price: Union[pd.Series, pd.DataFrame],
+    output: List[str] = ["adx"],
+    high: Union[pd.Series, None] = None,
+    low: Union[pd.Series, None] = None,
+) -> Union[pd.Series, Tuple[pd.Series]]:
+    """Average directional movement index"""
+    if isinstance(price, pd.DataFrame):
+        low = price["low"]
+        high = price["high"]
+        price = price["close"]
+
+    plusDM = pd.Series(0.0, index=high.index)
+    minusDM = pd.Series(0.0, index=high.index)
+
+    up_move = high - high.shift(1)
+    down_move = low.shift(1) - low
+    plusDM[up_move > down_move] = pd.DataFrame({'up':up_move,'zer':0}).max(axis=1)
+    minusDM[down_move > up_move] = pd.DataFrame({'down':down_move,'zer':0}).max(axis=1)
+    
+    plusDI = ema(plusDM, period=14) / ema(tr(high, low, price), 14) *100
+    plusDI.ffill(inplace=True)
+    minusDI = ema(minusDM, period=14) / ema(tr(high, low, price), 14) *100
+    minusDI.ffill(inplace=True)
+
+    dx= 100 * abs((plusDI - minusDI)/(plusDI + minusDI))
+    adx= ema(dx,14)
+
+    output_data = {"adx": adx, "+DI": plusDI, "-DI": minusDI}
+    if len(output) == 1:
+        return output_data[output[0]]
+    return (output_data[o] for o in output)

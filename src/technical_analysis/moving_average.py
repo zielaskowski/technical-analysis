@@ -3,7 +3,9 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
+from technical_analysis import df_price_to_series
 
+@df_price_to_series
 def sma(price: pd.Series, period: int) -> pd.Series:
     """
     Simple Moving Average (SMA)
@@ -12,15 +14,19 @@ def sma(price: pd.Series, period: int) -> pd.Series:
     return price.rolling(period).mean()
 
 
+@df_price_to_series
 def lwma(price: pd.Series, period: int) -> pd.Series:
     """
     Linearly Weighted Moving Average (LWMA)
     ---------
     """
     weights = np.arange(1, period + 1)
-    return price.rolling(period).apply(lambda x: np.dot(x, weights) / weights.sum(), raw=True)
+    return price.rolling(period).apply(
+        lambda x: np.dot(x, weights) / weights.sum(), raw=True
+    )
 
 
+@df_price_to_series
 def ema(price: pd.Series, period: int) -> pd.Series:
     """
     Exponentially Smoothed Moving Average (EMA)
@@ -31,6 +37,7 @@ def ema(price: pd.Series, period: int) -> pd.Series:
     return transformed_series
 
 
+@df_price_to_series
 def n_smoothed_ema(price: pd.Series, period: Union[int, tuple], n_iterations: int) -> pd.Series:
     """
     Variably Smoothed EMA
@@ -45,6 +52,7 @@ def n_smoothed_ema(price: pd.Series, period: Union[int, tuple], n_iterations: in
     return res
 
 
+@df_price_to_series
 def double_ema(price: pd.Series, period: int) -> pd.Series:
     """
     Doubly-Smoothed EMA (Mulloy)
@@ -52,6 +60,7 @@ def double_ema(price: pd.Series, period: int) -> pd.Series:
     return n_smoothed_ema(price, period=period, n=2)
 
 
+@df_price_to_series
 def triple_ema(price: pd.Series, period: int) -> pd.Series:
     """
     Triply-Smoothed EMA (Mulloy, 1994)
@@ -59,6 +68,7 @@ def triple_ema(price: pd.Series, period: int) -> pd.Series:
     return n_smoothed_ema(price, period=period, n=3)
 
 
+@df_price_to_series
 def wilder_ma(price: pd.Series, period: int) -> pd.Series:
     """
     Welles Wilder (1978) method
@@ -78,6 +88,7 @@ def wilder_ma(price: pd.Series, period: int) -> pd.Series:
     return ((period - 1) * shifted_ma + price) / period
 
 
+@df_price_to_series
 def gma(price: pd.Series, period: int) -> pd.Series:
     """
     Geometric Moving Average (GMA)
@@ -91,6 +102,7 @@ def gma(price: pd.Series, period: int) -> pd.Series:
     return sma(price.pct_change(), period)
 
 
+@df_price_to_series
 def tma(price: pd.Series, period: int):
     """
     Triangular Moving Average (TMA)
@@ -105,6 +117,7 @@ def tma(price: pd.Series, period: int):
     return sma(sma(price, period), period // 2)
 
 
+@df_price_to_series
 def kama(
     price: pd.Series,
     period: int,
@@ -139,7 +152,8 @@ def kama(
     min_smoothing_constant = 2 / (min_smoothing_constant + 1)
     max_smoothing_constant = 2 / (max_smoothing_constant + 1)
     smoothing_constant = (
-        efficiency_ratio * (min_smoothing_constant - max_smoothing_constant) + min_smoothing_constant
+        efficiency_ratio * (min_smoothing_constant - max_smoothing_constant)
+        + min_smoothing_constant
     ) ** 2
 
     # Current KAMA = Prior KAMA + SC x (Price - Prior KAMA)

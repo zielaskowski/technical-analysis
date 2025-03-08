@@ -8,6 +8,7 @@ Single Candlestick Patterns
 import numpy as np
 import pandas as pd
 
+from technical_analysis import df_ohlc_to_series
 from technical_analysis.utils import get_body
 
 
@@ -46,6 +47,7 @@ def is_gap(high: pd.Series, low: pd.Series, min_gap_size: float = 0.003) -> pd.S
     return is_gap_up(high, low, min_gap_size) | is_gap_down(high, low, min_gap_size)
 
 
+@df_ohlc_to_series
 def is_long_body(
     open: pd.Series,
     high: pd.Series,
@@ -75,6 +77,7 @@ def is_long_body(
     return is_relatively_large & has_large_body
 
 
+@df_ohlc_to_series
 def is_short_body(
     open: pd.Series,
     high: pd.Series,
@@ -104,6 +107,7 @@ def is_short_body(
     return is_relatively_small & has_small_body
 
 
+@df_ohlc_to_series
 def is_doji(
     open: pd.Series,
     high: pd.Series,
@@ -128,6 +132,7 @@ def is_doji(
     return open_close_range < (high_low_range * relative_threshold)  # body is smaller than a % of the shadow
 
 
+@df_ohlc_to_series
 def is_dragonfly_doji(
     open: pd.Series,
     high: pd.Series,
@@ -148,6 +153,7 @@ def is_dragonfly_doji(
     return doji & near_high
 
 
+@df_ohlc_to_series
 def is_gravestone_doji(
     open: pd.Series,
     high: pd.Series,
@@ -166,6 +172,7 @@ def is_gravestone_doji(
     return doji & near_low
 
 
+@df_ohlc_to_series
 def is_marubozu(
     open: pd.Series,
     high: pd.Series,
@@ -200,6 +207,7 @@ def is_outside(high: pd.Series, low: pd.Series, threshold: float = 0.001, lookba
     return (high > shifted_high) & (low < shifted_low)
 
 
+@df_ohlc_to_series
 def body_outside_shadow(
     open: pd.Series,
     high: pd.Series,
@@ -223,7 +231,7 @@ def body_outside_shadow(
 
 def body_outside_body(open: pd.Series, close: pd.Series, threshold: float = 0.001, lookback: int = 1) -> pd.Series:
     """
-    Current body is outside previous bdoy
+    Current body is outside previous body
     """
     lower_body, upper_body = get_body(open, close)
 
@@ -248,6 +256,7 @@ def is_inside(high: pd.Series, low: pd.Series, threshold: float = 0.001, lookbac
     return (high < shifted_high) & (low > shifted_low)
 
 
+@df_ohlc_to_series
 def shadow_inside_body(
     open: pd.Series,
     high: pd.Series,
@@ -278,6 +287,7 @@ def body_inside_body(open: pd.Series, close: pd.Series, threshold: float = 0.001
     return (upper_body < shifted_upper_body) & (lower_body > shifted_lower_body)
 
 
+@df_ohlc_to_series
 def body_inside_shadow(
     open: pd.Series,
     high: pd.Series,
@@ -299,6 +309,7 @@ def body_inside_shadow(
     return (upper_body < high) & (lower_body > low)
 
 
+@df_ohlc_to_series
 def spinning_top(open: pd.Series, high: pd.Series, low: pd.Series, close: pd.Series) -> pd.Series:
     """
     A spinning top has upper and lower shadows larger than the body
@@ -309,6 +320,7 @@ def spinning_top(open: pd.Series, high: pd.Series, low: pd.Series, close: pd.Ser
     return ((high - upper_body) > body_width) & ((lower_body - low) > body_width)
 
 
+@df_ohlc_to_series
 def hammer(
     open: pd.Series,
     high: pd.Series,
@@ -337,6 +349,7 @@ def hammer(
     return upper_shadow_criteria & (lower_shadow > (body_size * body_size_multiplier))
 
 
+@df_ohlc_to_series
 def inverted_hammer(
     open: pd.Series,
     high: pd.Series,
