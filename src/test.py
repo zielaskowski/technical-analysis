@@ -25,6 +25,7 @@ df.reset_index(inplace=True)
 #go.Figure(data=go.Candlestick(x=df['date'],open=df['open'],high=df['high'],low=df['low'],close=df['close'])).show()
 # px.bar(df, x='date',y=['open', 'high', 'low', 'close'],title='candles', barmode='group').show()
 
+rt = rising_three(df, lookback=20)
 rt = rising_three(df['open'], df['high'], df['low'], df['close'], lookback=20)
 rt = rising_n(df['open'], df['high'], df['low'], df['close'], n =6,lookback=20)
 
