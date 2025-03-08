@@ -1,4 +1,5 @@
 import pandas as pd
+from technical_analysis import df_ohlc_to_series
 
 from technical_analysis.utils import (
     is_bearish_trend,
@@ -16,6 +17,7 @@ from technical_analysis.candles.single import (
 )
 
 
+@df_ohlc_to_series
 def rising_n(
     open: pd.Series,
     high: pd.Series,
@@ -48,6 +50,7 @@ def rising_n(
     return bullish_trend & long_green & combined_insides & is_new_high(close, lookback)
 
 
+@df_ohlc_to_series
 def rising_three(
     open: pd.Series,
     high: pd.Series,
@@ -69,6 +72,7 @@ def rising_three(
     return rising_n(open, high, low, close, n=3, lookback=lookback)
 
 
+@df_ohlc_to_series
 def falling_n(
     open: pd.Series,
     high: pd.Series,
@@ -101,6 +105,7 @@ def falling_n(
     return bearish_trend & long_red & combined_insides & is_new_low(close, lookback)
 
 
+@df_ohlc_to_series
 def falling_three(
     open: pd.Series,
     high: pd.Series,
@@ -122,6 +127,7 @@ def falling_three(
     return falling_n(open, high, low, close, n=3, lookback=lookback)
 
 
+@df_ohlc_to_series
 def bearish_tasuki_gap(
     open: pd.Series,
     high: pd.Series,
@@ -161,6 +167,7 @@ def bearish_tasuki_gap(
     return bearish_trend & bearish_long_body.shift(2) & bearish_gap.shift(1) & opened_in_prev_body & closed_inside_gap
 
 
+@df_ohlc_to_series
 def bullish_tasuki_gap(
     open: pd.Series,
     high: pd.Series,
