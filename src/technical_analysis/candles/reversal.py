@@ -237,12 +237,13 @@ def bearish_star(
 ) -> pd.Series:
     """
     Evening Doji Start Reversal
+    https://www.candlescanner.com/candlestick-patterns/evening-doji-star/
 
     Candles:
     ----------
         1. long white body
         2. short doji-like candle with a gap-up
-        3. long-ish black candle that reverses direction
+        3. long-ish black candle that reverses direction, start below doji and ends below half of (1)
     """
     uptrend = is_bullish_trend(close, lookback)
     long_body_exists = is_long_body(open, high, low, close, min_body_size=min_body_size, lookback=0)
@@ -250,4 +251,11 @@ def bearish_star(
     valid_star = is_doji(open, high, low, close, relative_threshold=relative_threshold)
     valid_star = valid_star & is_gap_up(high, low, min_gap_size=min_gap_size)
     reverse_candle = long_body_exists & negative_close(open, close)
-    return uptrend & long_green.shift(2) & valid_star.shift(1) & reverse_candle & is_gap_down(high, low, min_gap_size)
+    below_doji = open < low.shift(1)
+    below_midpoint = close < ((close.shift(1) - open.shift(1)) / 2)
+    return (uptrend & 
+            long_green.shift(2) & 
+            valid_star.shift(1) & 
+            reverse_candle & 
+            is_gap_down(high, low, min_gap_size) & 
+            below_doji & below_midpoint)
