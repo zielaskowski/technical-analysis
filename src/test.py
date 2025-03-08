@@ -1,6 +1,7 @@
 import os
 import pandas as pd
-from technical_analysis.indicators import trend_down, adx, tr, sma, ema, atr
+from technical_analysis.indicators import ema
+# from technical_analysis.moving_average import trend_down, atr, sma, adx, tr
 from technical_analysis.candles import rising_three, rising_n
 import matplotlib.pyplot as plt
 import plotly.express as px
@@ -28,7 +29,7 @@ df.reset_index(inplace=True)
 rt = rising_three(df, lookback=20)
 rt = rising_three(df['open'], df['high'], df['low'], df['close'], lookback=20)
 rt = rising_n(df['open'], df['high'], df['low'], df['close'], n =6,lookback=20)
-
+ema = ema(df, period=20)
 
 df['adx']=adx(df, output=['adx'])
 
