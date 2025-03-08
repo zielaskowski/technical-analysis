@@ -34,7 +34,8 @@ sample_data['vol'] = sample_data['volume']
 sample_data["date"] = pd.to_datetime(sample_data["date"])
 # sample_data = sample_data.loc[sample_data['date']<pd.to_datetime('2004-04-20')]
 # sample_data = sample_data.loc[sample_data['date']<pd.to_datetime('2003-08-05')]
-sample_data = sample_data.loc[(sample_data['date']<pd.to_datetime('2004-01-28')) & (sample_data['date']>pd.to_datetime('2003-04-20'))]
+# sample_data = sample_data.loc[(sample_data['date']<pd.to_datetime('2004-01-28')) & (sample_data['date']>pd.to_datetime('2003-04-20'))]
+sample_data = sample_data.loc[(sample_data['date']<pd.to_datetime('2007-05-23')) & (sample_data['date']>pd.to_datetime('2007-04-01'))]
 df= sample_data
 
 
@@ -74,7 +75,7 @@ dc = dark_cloud(
     min_body_size=0.7, 
     new_high_periods=20
 )
-print(df[dc])
+print(df[dc]) # 2004-01-27
 
 bs = bearish_star(df,
             lookback= 20,
@@ -82,7 +83,7 @@ bs = bearish_star(df,
             relative_threshold= 0.3,
             min_gap_size= 0.001
  )
-print(df[bs])
+print(df[bs]) # 2007-05-22 
 
 
 bi=bearish_island(df,
