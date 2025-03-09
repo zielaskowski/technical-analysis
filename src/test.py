@@ -35,7 +35,7 @@ sample_data["date"] = pd.to_datetime(sample_data["date"])
 # sample_data = sample_data.loc[sample_data['date']<pd.to_datetime('2004-04-20')]
 # sample_data = sample_data.loc[sample_data['date']<pd.to_datetime('2003-08-05')]
 # sample_data = sample_data.loc[(sample_data['date']<pd.to_datetime('2004-01-28')) & (sample_data['date']>pd.to_datetime('2003-04-20'))]
-sample_data = sample_data.loc[(sample_data['date']<pd.to_datetime('2007-05-23')) & (sample_data['date']>pd.to_datetime('2007-04-01'))]
+# sample_data = sample_data.loc[(sample_data['date']<pd.to_datetime('2007-05-23')) & (sample_data['date']>pd.to_datetime('2007-04-01'))]
 df= sample_data
 
 
@@ -85,12 +85,26 @@ bs = bearish_star(df,
  )
 print(df[bs]) # 2007-05-22 
 
+bs = bullish_star(df,
+            lookback= 30,
+            min_body_size= 0.7,
+            relative_threshold= 0.3,
+            min_gap_size= 0.001
+        )
+print(df[bs])
+
 
 bi=bearish_island(df,
                min_gap_size= 0.001, 
                lookback= 30
                )
 print(df[bi])
+
+bi = bullish_island(df,
+            min_gap_size= 0.001,
+            lookback= 30)
+print(df[bi])
+
 
 bt = bearish_tasuki_gap(df,
             trend_lookback= 30,
@@ -101,18 +115,7 @@ bt = bearish_tasuki_gap(df,
 print(df[bt])
 
 
-bi = bullish_island(df,
-            min_gap_size= 0.001,
-            lookback= 30)
-print(df[bi])
 
-bs = bullish_star(df,
-            lookback= 30,
-            min_body_size= 0.7,
-            relative_threshold= 0.3,
-            min_gap_size= 0.001
-        )
-print(df[bs])
 
 bt = bullish_tasuki_gap(df,
             trend_lookback= 30,
