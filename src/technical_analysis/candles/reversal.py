@@ -242,7 +242,8 @@ def bullish_star(
             long_red.shift(2) & 
             valid_star.shift(1) & 
             reverse_candle & 
-            is_gap_up(high, low, min_gap_size))
+            is_gap_up(high, low, min_gap_size) &
+            above_midpoint)
 
 
 @df_ohlc_to_series
