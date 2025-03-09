@@ -36,6 +36,7 @@ sample_data["date"] = pd.to_datetime(sample_data["date"])
 # sample_data = sample_data.loc[sample_data['date']<pd.to_datetime('2003-08-05')]
 # sample_data = sample_data.loc[(sample_data['date']<pd.to_datetime('2004-01-28')) & (sample_data['date']>pd.to_datetime('2003-04-20'))]
 # sample_data = sample_data.loc[(sample_data['date']<pd.to_datetime('2007-05-23')) & (sample_data['date']>pd.to_datetime('2007-04-01'))]
+sample_data = sample_data.loc[(sample_data['date']<pd.to_datetime('2002-02-09')) & (sample_data['date']>pd.to_datetime('2002-01-01'))]
 df= sample_data
 
 
