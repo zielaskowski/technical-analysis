@@ -36,7 +36,8 @@ sample_data["date"] = pd.to_datetime(sample_data["date"])
 # sample_data = sample_data.loc[sample_data['date']<pd.to_datetime('2003-08-05')]
 # sample_data = sample_data.loc[(sample_data['date']<pd.to_datetime('2004-01-28')) & (sample_data['date']>pd.to_datetime('2003-04-20'))]
 # sample_data = sample_data.loc[(sample_data['date']<pd.to_datetime('2007-05-23')) & (sample_data['date']>pd.to_datetime('2007-04-01'))]
-sample_data = sample_data.loc[(sample_data['date']<pd.to_datetime('2002-02-09')) & (sample_data['date']>pd.to_datetime('2002-01-01'))]
+# sample_data = sample_data.loc[(sample_data['date']<pd.to_datetime('2002-10-12')) & (sample_data['date']>pd.to_datetime('2002-08-01'))]
+# sample_data = sample_data.loc[(sample_data['date']<pd.to_datetime('2001-05-30')) & (sample_data['date']>pd.to_datetime('2001-01-01'))]
 df= sample_data
 
 
@@ -87,12 +88,12 @@ bs = bearish_star(df,
 print(df[bs]) # 2007-05-22 
 
 bs = bullish_star(df,
-            lookback= 30,
+            lookback= 20,
             min_body_size= 0.7,
             relative_threshold= 0.3,
             min_gap_size= 0.001
         )
-print(df[bs])
+print(df[bs]) # 2002-02-08
 
 
 bi=bearish_island(df,
@@ -106,6 +107,69 @@ bi = bullish_island(df,
             lookback= 30)
 print(df[bi])
 
+# add island cluster!
+# bullish reversal:
+# 2002-10-11
+open = df['open']
+high = df['high']
+low = df['low']
+close = df['close']
+min_gap_size: float = 0.001
+lookback: int = 20
+cluster_min = 3
+cluster_max = 7
+
+downtrend = is_bearish_trend(close, lookback)
+open_red = negative_close(open, close)
+down_gap = is_gap_down(high, low, min_gap_size)
+up_gap = is_gap_up(high, low, min_gap_size)
+close_green = positive_close(open, close)
+
+is_formation = open != open # trick to have correct index; hate pandas!
+for n in range(cluster_min, cluster_max + 1):
+    cluster_no_gap = open == open
+    cluster_below = open == open
+    cluster_high_limit = pd.DataFrame({"low": low, "shifted": low.shift(n+1)}).min(axis=1)
+    for i in range(1, n):
+        # no gap in cluster
+        cluster_no_gap = (cluster_no_gap | ~(down_gap.shift(i, fill_value=False) | 
+                                            up_gap.shift(i, fill_value=False)))
+        # cluster below opening and closing candle
+        cluster_below = (cluster_below & (high.shift(i) < cluster_high_limit))
+    is_formation = (is_formation | (downtrend & 
+                                    open_red.shift(n+1) & 
+                                    down_gap.shift(n) & 
+                                    cluster_no_gap &
+                                    cluster_below &
+                                    up_gap & 
+                                    close_green))
+print(df[is_formation])
+# bearish reversal
+# 2001-05-29
+uptrend = is_bullish_trend(close, lookback)
+open_green = positive_close(open, close)
+up_gap = is_gap_up(high, low, min_gap_size)
+down_gap = is_gap_down(high, low, min_gap_size)
+close_red = negative_close(open, close)
+
+is_formation = open != open
+for n in range(cluster_min, cluster_max+1):
+    cluster_no_gap = open == open
+    cluster_above = open == open
+    cluster_low_limit = pd.DataFrame({"high": high, "shifted": high.shift(n+1)}).max(axis=1)
+    for i in range(1,n):
+        # no gap in cluster
+        cluster_no_gap = (cluster_no_gap | ~(down_gap.shift(i, fill_value=False) & 
+                                      up_gap.shift(i, fill_value=False)))
+        cluster_above = (cluster_above & (low.shift(i) > cluster_low_limit))
+    is_formation = (is_formation | (uptrend & 
+                                    open_green.shift(n+1) & 
+                                    up_gap.shift(n) & 
+                                    cluster_no_gap &
+                                    cluster_above &
+                                    down_gap & 
+                                    close_red))
+print(df[is_formation])    
 
 bt = bearish_tasuki_gap(df,
             trend_lookback= 30,
@@ -114,8 +178,6 @@ bt = bearish_tasuki_gap(df,
             min_gap_size= 0.002
         )
 print(df[bt])
-
-
 
 
 bt = bullish_tasuki_gap(df,
