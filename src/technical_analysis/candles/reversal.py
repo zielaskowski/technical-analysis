@@ -28,6 +28,7 @@ def dark_cloud(
 ) -> pd.Series:
     """
     Bearish Reversal Pattern
+    https://www.financestrategists.com/wealth-management/fundamental-vs-technical-analysis/dark-cloud-cover/
 
     Candles:
     ---------
@@ -39,7 +40,7 @@ def dark_cloud(
     """
     uptrend = is_bullish_trend(close, lookback=trend_lookback, threshold=trend_threshold)
     bullish_long_body = is_long_body(open, high, low, close, min_body_size=min_body_size) & positive_close(open, close)
-    new_high_comparator = high == high.rolling(new_high_periods).max()
+    new_high_comparator = open >= high.shift(1).rolling(new_high_periods).max()
     close_below_midpoint = close < (high.shift(1) + low.shift(1)) / 2
     return uptrend & bullish_long_body.shift(1) & new_high_comparator & close_below_midpoint
 
