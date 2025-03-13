@@ -178,14 +178,44 @@ def bullish_island(
     close: pd.Series,
     min_gap_size: float = 0.001,
     lookback: int = 30,
+    cluster_min = 1,
+    cluster_max = 1
 ) -> pd.Series:
     """
     Bullish island reversal
+    
+    Candles:
+    ----------
+        1. start with red candle
+        2. gap below(1)
+        3. cluster of candles, number of candles between cluster_min and cluster_max, without gaps
+        4. gap above 
+        5. white candle
     """
     downtrend = is_bearish_trend(close, lookback)
+    open_red = negative_close(open, close)
     down_gap = is_gap_down(high, low, min_gap_size)
     up_gap = is_gap_up(high, low, min_gap_size)
-    return downtrend & down_gap.shift(1) & up_gap
+    close_green = positive_close(open, close)
+    is_formation = open != open # trick to have correct index; hate pandas!
+    for n in range(cluster_min, cluster_max + 1):
+        cluster_no_gap = open == open
+        cluster_below = open == open
+        cluster_high_limit = pd.DataFrame({"low": low, "shifted": low.shift(n+1)}).min(axis=1)
+        for i in range(1, n):
+            # no gap in cluster
+            cluster_no_gap = (cluster_no_gap | ~(down_gap.shift(i, fill_value=False) | 
+                                                up_gap.shift(i, fill_value=False)))
+            # cluster below opening and closing candle
+            cluster_below = (cluster_below & (high.shift(i) < cluster_high_limit))
+        is_formation = (is_formation | (downtrend & 
+                                        open_red.shift(n+1) & 
+                                        down_gap.shift(n) & 
+                                        cluster_no_gap &
+                                        cluster_below &
+                                        up_gap & 
+                                        close_green))
+    return is_formation
 
 
 @df_ohlc_to_series
@@ -196,14 +226,44 @@ def bearish_island(
     close: pd.Series,
     min_gap_size: float = 0.001,
     lookback: int = 30,
+    cluster_min = 1,
+    cluster_max = 1
 ) -> pd.Series:
     """
     Bullish island reversal
+
+    Candles:
+    ----------
+        1. start with white candle
+        2. gap above(1)
+        3. cluster of candles, number of candles between cluster_min and cluster_max, without gaps
+        4. gap below
+        5. red candle
     """
     uptrend = is_bullish_trend(close, lookback)
     up_gap = is_gap_up(high, low, min_gap_size)
+    open_green = positive_close(open, close)
     down_gap = is_gap_down(high, low, min_gap_size)
-    return uptrend & up_gap.shift(1) & down_gap
+    close_red = negative_close(open, close)
+    is_formation = open != open
+    for n in range(cluster_min, cluster_max+1):
+        cluster_no_gap = open == open
+        cluster_above = open == open
+        cluster_low_limit = pd.DataFrame({"high": high, "shifted": high.shift(n+1)}).max(axis=1)
+        for i in range(1,n):
+            # no gap in cluster
+            cluster_no_gap = (cluster_no_gap | ~(down_gap.shift(i, fill_value=False) & 
+                                        up_gap.shift(i, fill_value=False)))
+            # cluster above opening and closing candle
+            cluster_above = (cluster_above & (low.shift(i) > cluster_low_limit))
+        is_formation = (is_formation | (uptrend & 
+                                        open_green.shift(n+1) & 
+                                        up_gap.shift(n) & 
+                                        cluster_no_gap &
+                                        cluster_above &
+                                        down_gap & 
+                                        close_red))
+    return is_formation
 
 
 @df_ohlc_to_series
