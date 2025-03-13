@@ -232,7 +232,7 @@ def body_outside_shadow(
 
 def body_outside_body(open: pd.Series, close: pd.Series, threshold: float = 0.001, lookback: int = 1) -> pd.Series:
     """
-    Current body is outside previous bdoy
+    Current body is outside previous body
     """
     lower_body, upper_body = get_body(open, close)
 
