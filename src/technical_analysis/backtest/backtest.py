@@ -127,6 +127,8 @@ class Backtest(object):
         self.use_next_open = use_next_open
         self.feature_columns = []
         self.results = kwargs.get("results", {})
+        self.entry = pd.Series
+        self.exit = pd.Series
 
     def __repr__(self):
         info = {
@@ -169,7 +171,9 @@ class Backtest(object):
         criteria_states = []
 
         if criteria is None:
-            criteria = self.exit_criteria if exit else self.entry_criteria  # assume entry if not exit
+            criteria = (
+                self.exit_criteria if exit else self.entry_criteria
+            )  # assume entry if not exit
 
         if isinstance(criteria, tuple):
             logical = "or"
@@ -181,10 +185,14 @@ class Backtest(object):
         for c in criteria:
             # criteria in tuples are recursively merged with a logical 'or' operation
             if isinstance(c, tuple):
-                criteria_states.append(self._apply_criteria(data, exit=exit, criteria=c))
+                criteria_states.append(
+                    self._apply_criteria(data, exit=exit, criteria=c)
+                )
             # criteria in lists are recursively merged with a logical 'and' operation
             elif isinstance(c, list):
-                criteria_states.append(self._apply_criteria(data, exit=exit, criteria=c))
+                criteria_states.append(
+                    self._apply_criteria(data, exit=exit, criteria=c)
+                )
             # Callable must return a single boolean pd.Series
             elif isinstance(c, Callable):
                 callable_result = c(data)
@@ -198,17 +206,23 @@ class Backtest(object):
                 criteria_states.append(eval(condition))
 
         if logical == "or":
-            return pd.concat(criteria_states, axis=1).any(axis=1)  # column-wise logical 'or'
-        return pd.concat(criteria_states, axis=1).all(axis=1)  # column-wise logical 'and'
+            return pd.concat(criteria_states, axis=1).any(
+                axis=1
+            )  # column-wise logical 'or'
+        return pd.concat(criteria_states, axis=1).all(
+            axis=1
+        )  # column-wise logical 'and'
 
-    def calculate_results(self, data: pd.DataFrame, entry: pd.Series, exit: pd.Series) -> dict:
+    def calculate_results(self, data: pd.DataFrame) -> dict:
         benchmark = (data.close.iloc[-1] - data.close.iloc[0]) / data.close.iloc[0]
-        assert entry.size == exit.size
+        assert self.entry.size == self.exit.size
         if self.use_next_open:
-            entry = entry[:-1]
-            exit = exit[:-1]
+            entry = self.entry.iloc[:-1]
+            exit = self.exit.iloc[:-1]
             action_price = data.open.to_numpy()[1:]
         else:
+            entry = self.entry
+            exit = self.exit
             action_price = data.close.to_numpy()  # backtest won't be realistic with this setting
 
         returns = []
@@ -219,6 +233,10 @@ class Backtest(object):
             elif exit and positions:
                 entry_price = positions.pop(0)
                 returns.append((price - entry_price) / entry_price)
+
+        # possibly no signals to enter generated
+        if not returns:
+            returns = [0]
 
         return {
             "benchmark": benchmark,
@@ -235,6 +253,29 @@ class Backtest(object):
         if not self.feature_columns:
             self.feature_columns = list(data.columns)
 
-        entry = self._apply_criteria(data, exit=False)  # entry
-        exit = self._apply_criteria(data, exit=True)
-        self.results = self.calculate_results(data, entry, exit)
+        self.entry = self._apply_criteria(data, exit=False)  # entry
+        self.exit = self._apply_criteria(data, exit=True)
+        self.results = self.calculate_results(data)
+
+    def signal(self)->pd.Series:
+        if not self.results:
+            warn("Must call 'run' before plotting results.")
+            return
+        signal = pd.Series(index=self.entry.index, data=0)
+        signal.loc[self.entry] = 1
+        signal.loc[self.exit] = -1
+        return signal
+
+    def plot(self, figsize: tuple = (10, 6)):
+        if not self.results:
+            warn("Must call 'run' before plotting results.")
+            return
+
+        fig = plt.figure(figsize=figsize)
+        ax = fig.add_subplot(1, 1, 1)
+        ax.yaxis.set_major_formatter(mtick.PercentFormatter())
+        ax.plot(np.cumsum(self.results["returns"]) * 100)
+        plt.title("Backtest Cumulative Return")
+        plt.ylabel("Percent Return")
+        plt.xlabel("Num Trades")
+        plt.show()
